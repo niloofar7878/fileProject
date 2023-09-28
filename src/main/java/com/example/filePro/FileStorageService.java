@@ -4,8 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 
 @Service
@@ -13,12 +12,11 @@ public class FileStorageService {
     @Value("${storage.location}")
     private String storageLocation;
 
-    public String saveFile(MultipartFile file) {
+    public void saveFile(MultipartFile file) {
         try {
             String fileName = file.getOriginalFilename();
             String filePath = storageLocation + "/" + fileName;
             file.transferTo(new File(filePath));
-            return filePath;
         } catch (IOException e) {
             throw new FileStorageException("Failed to store file", e);
         }
@@ -59,6 +57,22 @@ public class FileStorageService {
                 }
             }
         }
+    }
+
+    public void createFile(String filePath, String fileName) throws IOException {
+        File file= new File(filePath + File.separator+ fileName);
+        if (file.createNewFile()){
+            System.out.println("File created successfully.");
+        }else {
+            System.out.println("File already exists.");
+        }
+        String content = "My content";
+        FileOutputStream fos = new FileOutputStream(file);
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos));
+        writer.write(content);
+
+        writer.close();
+        fos.close();
     }
 
 }

@@ -1,12 +1,14 @@
 package com.example.filePro;
-
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import java.io.IOException;
+
 
 @RestController
 public class FileStorageController {
@@ -16,10 +18,11 @@ public class FileStorageController {
         this.fileStorageService = fileStorageService;
     }
 
-    @PostMapping("/uploadFile")
-    public String uploadFile(@RequestParam("file") MultipartFile file) {
-        String filePath = fileStorageService.saveFile(file);
-        return "File uploaded successfully. Path: " + filePath;
+    @PostMapping( value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public void writeFile(@RequestParam("file") MultipartFile file,
+                          @RequestParam(required = false) String ignoredFilePath)
+    throws Exception {
+        fileStorageService.saveFile(file);
     }
 
     @GetMapping("/downloadFile")
@@ -41,5 +44,12 @@ public class FileStorageController {
         fileStorageService.deleteAllFiles();
         return "All files deleted successfully";
     }
+
+    @PostMapping("/file")
+    public void createFile(@RequestParam("filePath") String filePath, @RequestParam("fileName") String fileName)
+            throws IOException {
+        fileStorageService.createFile(filePath, fileName);
+    }
+
 
 }
