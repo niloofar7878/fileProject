@@ -1,36 +1,34 @@
 package com.example.filePro;
-
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.InputStreamResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import java.io.*;
-import java.nio.file.Files;
+
 
 @Service
 public class FileStorageService {
     @Value("${storage.location}")
     private String storageLocation;
 
-    public void saveFile(MultipartFile file) {
-        try {
-            String fileName = file.getOriginalFilename();
-            String filePath = storageLocation + "/" + fileName;
-            file.transferTo(new File(filePath));
-        } catch (IOException e) {
-            throw new FileStorageException("Failed to store file", e);
-        }
+    private final ResourceLoader resourceLoader;
+
+    public FileStorageService(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
     }
 
-    public byte[] getFile(String fileName) {
-        try {
-            String filePath = storageLocation + "/" + fileName;
-            File file = new File(filePath);
-            return Files.readAllBytes(file.toPath());
-        } catch (IOException e) {
-            throw new FileStorageException("Failed to retrieve file", e);
-        }
+    public void saveFile(MultipartFile multipartFile, String filePath) throws IOException {
+        File file= new File(storageLocation + "//" +filePath + multipartFile.getOriginalFilename());
+        FileOutputStream fileOutputStream= new FileOutputStream(file);
+        fileOutputStream.write(multipartFile.getBytes());
+        fileOutputStream.close();
     }
+
 
     public void createDirectory(String directoryName) {
         String directoryPath = storageLocation + "/" + directoryName;
@@ -59,20 +57,42 @@ public class FileStorageService {
         }
     }
 
-    public void createFile(String filePath, String fileName) throws IOException {
-        File file= new File(filePath + File.separator+ fileName);
-        if (file.createNewFile()){
-            System.out.println("File created successfully.");
-        }else {
-            System.out.println("File already exists.");
-        }
-        String content = "My content";
-        FileOutputStream fos = new FileOutputStream(file);
-        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fos));
-        writer.write(content);
+    public void downloadFile(String filePath) throws IOException {
+        Resource resource = resourceLoader.getResource("file:" + filePath);
+        InputStream inputStream = resource.getInputStream();
+        FileOutputStream outputStream = new FileOutputStream("C:\\Users\\AsusIran\\OneDrive\\Desktop\\download");
 
-        writer.close();
-        fos.close();
+        byte[] buffer = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = inputStream.read(buffer)) != -1) {
+            outputStream.write(buffer, 0, bytesRead);
+        }
+
+        inputStream.close();
+        outputStream.close();
     }
+
+    public InputStream loadLargeFile() throws IOException {
+        File file = new File( "C:\\Users\\AsusIran\\OneDrive\\Desktop\\save-file\\nullch10.pdf");
+        InputStream inputStream = new DataInputStream(new FileInputStream(file));
+        return inputStream;
+    }
+
+    public ResponseEntity<InputStreamResource> downloadLargeFile(MultipartFile multipartFile)
+            throws Exception {
+        final HttpHeaders httpHeaders = new HttpHeaders();
+        final File file = new File("C:\\Users\\AsusIran\\OneDrive\\Desktop\\download");
+        final InputStream inputStream = new FileInputStream(file);
+        final InputStreamResource resource = new InputStreamResource(inputStream);
+        httpHeaders.set(HttpHeaders.LAST_MODIFIED, String.valueOf(file.lastModified()));
+        httpHeaders.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.getName() + "\"");
+        httpHeaders.set(HttpHeaders.CONTENT_LENGTH, String.valueOf(file.length()));
+        return ResponseEntity.ok()
+                .headers(httpHeaders)
+                .contentLength(file.length())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(resource);
+    }
+
 
 }

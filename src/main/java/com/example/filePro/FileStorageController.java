@@ -1,14 +1,10 @@
 package com.example.filePro;
-import org.springframework.http.HttpHeaders;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
-
 
 @RestController
 public class FileStorageController {
@@ -22,15 +18,7 @@ public class FileStorageController {
     public void writeFile(@RequestParam("file") MultipartFile file,
                           @RequestParam(required = false) String ignoredFilePath)
     throws Exception {
-        fileStorageService.saveFile(file);
-    }
-
-    @GetMapping("/downloadFile")
-    public ResponseEntity<byte[]> downloadFile(@RequestParam("fileName") String fileName) {
-        byte[] fileBytes = fileStorageService.getFile(fileName);
-        HttpHeaders headers = new HttpHeaders();
-        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + fileName);
-        return ResponseEntity.ok().headers(headers).body(fileBytes);
+        fileStorageService.saveFile(file, ignoredFilePath);
     }
 
     @PostMapping("/createDirectory")
@@ -45,11 +33,19 @@ public class FileStorageController {
         return "All files deleted successfully";
     }
 
-    @PostMapping("/file")
-    public void createFile(@RequestParam("filePath") String filePath, @RequestParam("fileName") String fileName)
-            throws IOException {
-        fileStorageService.createFile(filePath, fileName);
+    @GetMapping("/download/{filePath}")
+    public void downloadFile(@PathVariable String filePath) throws IOException {
+        fileStorageService.downloadFile(filePath);
     }
 
+    @GetMapping("/download/large")
+    public void loadLarge() throws IOException {
+       fileStorageService.loadLargeFile();
+    }
+    @GetMapping("/download")
+    public ResponseEntity<InputStreamResource> download(@RequestParam MultipartFile file)
+            throws Exception {
+        return fileStorageService.downloadLargeFile(file);
+    }
 
 }
